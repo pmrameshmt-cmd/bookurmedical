@@ -22,4 +22,11 @@ public class User {
     private String lastName;
     private String phoneNumber;
     private boolean isProfileCompleted = false;
+
+    private String resetToken;
+    private java.time.LocalDateTime resetTokenExpiry;
+
+    private String emailVerificationToken;
+    private boolean emailVerified = false;
+
 }
