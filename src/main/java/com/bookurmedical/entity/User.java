@@ -1,8 +1,10 @@
 
 package com.bookurmedical.entity;
 
+import com.bookurmedical.annotation.Encrypted;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.index.Indexed;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
@@ -14,19 +16,41 @@ import lombok.AllArgsConstructor;
 public class User {
     @Id
     private String id;
-    private String username;
-    private String email;
-    private String password;
+
+    private String username; // login key — plain text, queryable
+
+    @Encrypted
+    private String email; // PII — stored encrypted
+
+    @Indexed(unique = true, sparse = true)
+    private String emailHash; // HMAC of email — used for unique-check & lookup queries
+
+    private String password; // BCrypt hash — already secure
+
     private String role;
-    private String firstName;
-    private String lastName;
-    private String phoneNumber;
+
+    @Encrypted
+    private String firstName; // PII
+
+    @Encrypted
+    private String lastName; // PII
+
+    @Encrypted
+    private String phoneNumber; // PII
+
     private boolean isProfileCompleted = false;
 
-    private String resetToken;
+    @Encrypted
+    private String resetToken; // sensitive token — stored encrypted
+
+    private String resetTokenHash; // HMAC of resetToken — used for lookup
+
     private java.time.LocalDateTime resetTokenExpiry;
 
-    private String emailVerificationToken;
-    private boolean emailVerified = false;
+    @Encrypted
+    private String emailVerificationToken; // sensitive token — stored encrypted
 
+    private String emailVerificationTokenHash; // HMAC — used for lookup
+
+    private boolean emailVerified = false;
 }
