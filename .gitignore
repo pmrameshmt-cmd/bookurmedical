@@ -33,3 +33,7 @@ build/
 .vscode/
 *.log
 *.txt
+
+### Secrets — NEVER commit ───────────────────────────────────────────────────
+.env
+application-local.properties

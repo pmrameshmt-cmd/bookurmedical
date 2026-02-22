@@ -14,46 +14,51 @@ public class UserService {
 
     @Autowired
     private UserRepository userRepository;
-
     @Autowired
     private PasswordEncoder passwordEncoder;
-
     @Autowired
     private EmailService emailService;
+    @Autowired
+    private FieldEncryptionService encryptionService;
 
     @Value("${app.frontend-url}")
     private String frontendBaseUrl;
+
+    // ── Registration ──────────────────────────────────────────────────────────
 
     public void registerUser(SignupRequest signupRequest) {
         if (userRepository.existsByUsername(signupRequest.getUsername())) {
             throw new RuntimeException("Error: Username is already taken!");
         }
 
-        if (userRepository.existsByEmail(signupRequest.getEmail())) {
+        // Use HMAC hash for the uniqueness check (email is encrypted at rest)
+        String emailHash = encryptionService.encryptDeterministic(signupRequest.getEmail());
+        if (userRepository.existsByEmailHash(emailHash)) {
             throw new RuntimeException("Error: Email is already in use!");
         }
 
+        String verificationToken = java.util.UUID.randomUUID().toString();
+
         User user = new User();
         user.setUsername(signupRequest.getUsername());
-        user.setEmail(signupRequest.getEmail());
+        user.setEmail(signupRequest.getEmail()); // encrypted on save by listener
+        user.setEmailHash(emailHash); // HMAC — queryable
         user.setPassword(passwordEncoder.encode(signupRequest.getPassword()));
         user.setRole(signupRequest.getRole());
-        user.setFirstName(signupRequest.getFirstName());
-        user.setLastName(signupRequest.getLastName());
-        user.setPhoneNumber(signupRequest.getPhoneNumber());
-
-        // Generate email verification token
-        String verificationToken = java.util.UUID.randomUUID().toString();
-        user.setEmailVerificationToken(verificationToken);
+        user.setFirstName(signupRequest.getFirstName()); // encrypted on save
+        user.setLastName(signupRequest.getLastName()); // encrypted on save
+        user.setPhoneNumber(signupRequest.getPhoneNumber()); // encrypted on save
+        user.setEmailVerificationToken(verificationToken); // encrypted on save
+        user.setEmailVerificationTokenHash(
+                encryptionService.encryptDeterministic(verificationToken)); // HMAC — queryable
         user.setEmailVerified(false);
 
         userRepository.save(user);
 
-        // Send verification email
         try {
-            emailService.sendVerificationEmail(user.getEmail(), user.getFirstName(), verificationToken);
+            emailService.sendVerificationEmail(
+                    signupRequest.getEmail(), signupRequest.getFirstName(), verificationToken);
         } catch (Exception e) {
-            // Dev fallback: print verification link to console
             String verifyLink = frontendBaseUrl + "/verify-email?token=" + verificationToken;
             System.out.println("------------------------------------------------");
             System.out.println("EMAIL VERIFICATION LINK (Dev Mode):");
@@ -63,37 +68,42 @@ public class UserService {
         }
     }
 
+    // ── Email verification ────────────────────────────────────────────────────
+
     public void verifyEmail(String token) {
-        com.bookurmedical.entity.User user = userRepository.findByEmailVerificationToken(token)
+        String tokenHash = encryptionService.encryptDeterministic(token);
+        User user = userRepository.findByEmailVerificationTokenHash(tokenHash)
                 .orElseThrow(() -> new RuntimeException("Error: Invalid or already used verification token!"));
 
         user.setEmailVerified(true);
-        user.setEmailVerificationToken(null); // clear token after use
+        user.setEmailVerificationToken(null); // clears DB encrypted value
+        user.setEmailVerificationTokenHash(null); // clears hash
         userRepository.save(user);
 
-        // Send welcome email now that address is confirmed
         try {
+            // user.getEmail() / getFirstName() are decrypted by the listener after load
             emailService.sendWelcomeEmail(user.getEmail(), user.getFirstName());
         } catch (Exception e) {
             System.err.println("Failed to send welcome email after verification: " + e.getMessage());
         }
     }
 
+    // ── Forgot password ───────────────────────────────────────────────────────
+
     public void forgotPassword(String email) {
-        User user = userRepository.findByEmail(email)
+        String emailHash = encryptionService.encryptDeterministic(email);
+        User user = userRepository.findByEmailHash(emailHash)
                 .orElseThrow(() -> new RuntimeException("Error: User not found with email: " + email));
 
         String token = java.util.UUID.randomUUID().toString();
-        user.setResetToken(token);
-        user.setResetTokenExpiry(java.time.LocalDateTime.now().plusHours(1)); // Token valid for 1 hour
-
+        user.setResetToken(token); // encrypted on save
+        user.setResetTokenHash(encryptionService.encryptDeterministic(token)); // HMAC — queryable
+        user.setResetTokenExpiry(java.time.LocalDateTime.now().plusHours(1));
         userRepository.save(user);
 
         try {
             emailService.sendPasswordResetEmail(user.getEmail(), token);
         } catch (Exception e) {
-            // Log the token/link for development since email sending might fail without
-            // config
             String resetLink = frontendBaseUrl + "/reset-password?token=" + token;
             System.out.println("------------------------------------------------");
             System.out.println("PASSWORD RESET LINK (Dev Mode):");
@@ -103,8 +113,11 @@ public class UserService {
         }
     }
 
+    // ── Reset password ────────────────────────────────────────────────────────
+
     public void resetPassword(String token, String newPassword) {
-        User user = userRepository.findByResetToken(token)
+        String tokenHash = encryptionService.encryptDeterministic(token);
+        User user = userRepository.findByResetTokenHash(tokenHash)
                 .orElseThrow(() -> new RuntimeException("Error: Invalid password reset token!"));
 
         if (user.getResetTokenExpiry().isBefore(java.time.LocalDateTime.now())) {
@@ -113,8 +126,8 @@ public class UserService {
 
         user.setPassword(passwordEncoder.encode(newPassword));
         user.setResetToken(null);
+        user.setResetTokenHash(null);
         user.setResetTokenExpiry(null);
-
         userRepository.save(user);
     }
 }
