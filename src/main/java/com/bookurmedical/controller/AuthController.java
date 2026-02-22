@@ -8,8 +8,10 @@ import com.bookurmedical.security.jwt.JwtUtils;
 import com.bookurmedical.security.services.UserDetailsImpl;
 import com.bookurmedical.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -33,27 +35,38 @@ public class AuthController {
 
     @PostMapping("/signin")
     public ResponseEntity<?> authenticateUser(@RequestBody LoginRequest loginRequest) {
+        try {
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
 
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+            String jwt = jwtUtils.generateJwtToken(authentication);
 
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-        String jwt = jwtUtils.generateJwtToken(authentication);
+            UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+            String role = userDetails.getAuthorities().stream()
+                    .map(item -> item.getAuthority())
+                    .findFirst()
+                    .orElse("USER");
 
-        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
-        String role = userDetails.getAuthorities().stream()
-                .map(item -> item.getAuthority())
-                .findFirst()
-                .orElse("USER");
+            return ResponseEntity.ok(new JwtResponse(jwt,
+                    userDetails.getId(),
+                    userDetails.getUsername(),
+                    userDetails.getEmail(),
+                    userDetails.getFirstName(),
+                    userDetails.getLastName(),
+                    role,
+                    userDetails.isProfileCompleted()));
 
-        return ResponseEntity.ok(new JwtResponse(jwt,
-                userDetails.getId(),
-                userDetails.getUsername(),
-                userDetails.getEmail(),
-                userDetails.getFirstName(),
-                userDetails.getLastName(),
-                role,
-                userDetails.isProfileCompleted()));
+        } catch (DisabledException e) {
+            // User registered but hasn't verified their email yet
+            return ResponseEntity
+                    .status(HttpStatus.FORBIDDEN)
+                    .body("Please verify your email address before logging in. Check your inbox for the verification link.");
+        } catch (Exception e) {
+            return ResponseEntity
+                    .status(HttpStatus.UNAUTHORIZED)
+                    .body("Invalid username or password.");
+        }
     }
 
     @PostMapping("/signup")

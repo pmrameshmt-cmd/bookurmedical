@@ -21,6 +21,7 @@ public class UserDetailsImpl implements UserDetails {
     private String firstName;
     private String lastName;
     private boolean isProfileCompleted;
+    private boolean emailVerified;
 
     @JsonIgnore
     private String password;
@@ -28,7 +29,7 @@ public class UserDetailsImpl implements UserDetails {
     private Collection<? extends GrantedAuthority> authorities;
 
     public UserDetailsImpl(String id, String username, String email, String password, String firstName, String lastName,
-            boolean isProfileCompleted,
+            boolean isProfileCompleted, boolean emailVerified,
             Collection<? extends GrantedAuthority> authorities) {
         this.id = id;
         this.username = username;
@@ -37,6 +38,7 @@ public class UserDetailsImpl implements UserDetails {
         this.firstName = firstName;
         this.lastName = lastName;
         this.isProfileCompleted = isProfileCompleted;
+        this.emailVerified = emailVerified;
         this.authorities = authorities;
     }
 
@@ -51,6 +53,7 @@ public class UserDetailsImpl implements UserDetails {
                 user.getFirstName(),
                 user.getLastName(),
                 user.isProfileCompleted(),
+                user.isEmailVerified(),
                 authorities);
     }
 
@@ -106,7 +109,9 @@ public class UserDetailsImpl implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return true;
+        // Spring Security will reject login with DisabledException if this returns
+        // false
+        return emailVerified;
     }
 
     @Override
