@@ -48,7 +48,14 @@ public class MedicalHistoryController {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Error: User not found."));
 
+        medicalCaseSheet.setStatus("COMPLETED");
         medicalCaseSheet.setUserId(user.getId());
+
+        // Upsert logic: if a sheet already exists for this user, update it
+        medicalCaseSheetRepository.findByUserId(user.getId()).ifPresent(existing -> {
+            medicalCaseSheet.setId(existing.getId());
+        });
+
         medicalCaseSheetRepository.save(medicalCaseSheet);
 
         // Update user profile status
@@ -56,6 +63,27 @@ public class MedicalHistoryController {
         userRepository.save(user);
 
         return ResponseEntity.ok("Medical history submitted successfully!");
+    }
+
+    @PostMapping("/draft")
+    public ResponseEntity<?> saveDraft(@RequestBody MedicalCaseSheet medicalCaseSheet) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = ((UserDetails) authentication.getPrincipal()).getUsername();
+
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Error: User not found."));
+
+        medicalCaseSheet.setStatus("DRAFT");
+        medicalCaseSheet.setUserId(user.getId());
+
+        // Upsert logic: if a sheet/draft already exists for this user, update it
+        medicalCaseSheetRepository.findByUserId(user.getId()).ifPresent(existing -> {
+            medicalCaseSheet.setId(existing.getId());
+        });
+
+        medicalCaseSheetRepository.save(medicalCaseSheet);
+
+        return ResponseEntity.ok("Draft saved successfully!");
     }
 
     @PostMapping("/upload")

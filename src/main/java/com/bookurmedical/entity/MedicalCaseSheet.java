@@ -131,7 +131,9 @@ public class MedicalCaseSheet {
     @Encrypted
     private String reaction;
 
-    // ── Progress Notes (PHI) ─────────────────────────────────────────────────
+    // ── Status ──────────────────────────────────────────────────────────────
+    private String status; // DRAFT or COMPLETED
+
     @Encrypted
     private String progressNotes;
 }
