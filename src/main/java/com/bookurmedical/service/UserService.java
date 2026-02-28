@@ -130,4 +130,20 @@ public class UserService {
         user.setResetTokenExpiry(null);
         userRepository.save(user);
     }
+
+    // ── Admin management ──────────────────────────────────────────────────────
+
+    public java.util.List<User> getAllUsers() {
+        return userRepository.findAll();
+    }
+
+    public java.util.List<User> getUsersByRoles(java.util.List<String> roles) {
+        return userRepository.findAll().stream()
+                .filter(u -> roles.contains(u.getRole()))
+                .collect(java.util.stream.Collectors.toList());
+    }
+
+    public void deleteUser(String id) {
+        userRepository.deleteById(id);
+    }
 }

@@ -77,6 +77,51 @@ public class AuthController {
         }
     }
 
+    @PostMapping("/admin/signin")
+    public ResponseEntity<?> authenticateAdmin(@RequestBody LoginRequest loginRequest) {
+        try {
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
+
+            UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+            String role = userDetails.getAuthorities().stream()
+                    .map(item -> item.getAuthority())
+                    .findFirst()
+                    .orElse("USER");
+
+            // Only allow administrative roles
+            List<String> adminRoles = List.of("ADMIN", "SUPER_ADMIN", "OPERATIONS", "FINANCE");
+            if (!adminRoles.contains(role)) {
+                return ResponseEntity
+                        .status(HttpStatus.FORBIDDEN)
+                        .body("Access denied. You do not have administrative privileges.");
+            }
+
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+            String jwt = jwtUtils.generateJwtToken(authentication);
+
+            return ResponseEntity.ok(new JwtResponse(jwt,
+                    userDetails.getId(),
+                    userDetails.getUsername(),
+                    userDetails.getEmail(),
+                    userDetails.getFirstName(),
+                    userDetails.getLastName(),
+                    role,
+                    userDetails.isProfileCompleted()));
+
+        } catch (DisabledException e) {
+            return ResponseEntity
+                    .status(HttpStatus.FORBIDDEN)
+                    .body("Account is disabled. Please contact system administrator.");
+        } catch (Exception e) {
+            log.error("[AdminSignIn] Login failed for user '{}': [{}] {}",
+                    loginRequest.getUsername(), e.getClass().getSimpleName(), e.getMessage());
+            return ResponseEntity
+                    .status(HttpStatus.UNAUTHORIZED)
+                    .body("Invalid admin credentials.");
+        }
+    }
+
     @PostMapping("/signup")
     public ResponseEntity<?> registerUser(@RequestBody SignupRequest signupRequest) {
         try {
