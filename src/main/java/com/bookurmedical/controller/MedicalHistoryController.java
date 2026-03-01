@@ -5,7 +5,16 @@ import com.bookurmedical.entity.MedicalCaseSheet;
 import com.bookurmedical.entity.User;
 import com.bookurmedical.repository.MedicalCaseSheetRepository;
 import com.bookurmedical.repository.UserRepository;
+import com.mongodb.client.gridfs.model.GridFSFile;
+import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.gridfs.GridFsOperations;
+import org.springframework.data.mongodb.gridfs.GridFsTemplate;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -14,9 +23,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.io.InputStream;
 import java.util.UUID;
 
 @CrossOrigin(origins = "*", maxAge = 3600)
@@ -30,15 +37,11 @@ public class MedicalHistoryController {
     @Autowired
     UserRepository userRepository;
 
-    private final Path fileStorageLocation = Paths.get("uploads").toAbsolutePath().normalize();
+    @Autowired
+    private GridFsTemplate gridFsTemplate;
 
-    public MedicalHistoryController() {
-        try {
-            Files.createDirectories(this.fileStorageLocation);
-        } catch (Exception ex) {
-            throw new RuntimeException("Could not create the directory where the uploaded files will be stored.", ex);
-        }
-    }
+    @Autowired
+    private GridFsOperations gridFsOperations;
 
     @PostMapping("/submit")
     public ResponseEntity<?> submitMedicalHistory(@RequestBody MedicalCaseSheet medicalCaseSheet) {
@@ -89,15 +92,56 @@ public class MedicalHistoryController {
     @PostMapping("/upload")
     public ResponseEntity<String> uploadFile(@RequestParam("file") MultipartFile file) {
         try {
-            // Normalize file name
             String fileName = UUID.randomUUID().toString() + "_" + file.getOriginalFilename();
-            Path targetLocation = this.fileStorageLocation.resolve(fileName);
-            Files.copy(file.getInputStream(), targetLocation);
 
+            // Store file in MongoDB GridFS
+            ObjectId fileId = gridFsTemplate.store(
+                    file.getInputStream(),
+                    fileName,
+                    file.getContentType());
+
+            // Return the filename (used as the key stored in MedicalCaseSheet fields)
             return ResponseEntity.ok(fileName);
         } catch (IOException ex) {
             return ResponseEntity.badRequest()
                     .body("Could not upload file " + file.getOriginalFilename() + ". Please try again!");
+        }
+    }
+
+    @GetMapping("/download/{fileName:.+}")
+    public ResponseEntity<?> downloadFile(@PathVariable String fileName) {
+        try {
+            // Find file in GridFS by filename
+            GridFSFile gridFSFile = gridFsTemplate.findOne(
+                    new Query(Criteria.where("filename").is(fileName)));
+
+            if (gridFSFile == null) {
+                return ResponseEntity.notFound().build();
+            }
+
+            // Get the file content stream
+            InputStream inputStream = gridFsOperations.getResource(gridFSFile).getInputStream();
+
+            // Determine content type
+            String contentType = "application/octet-stream";
+            if (gridFSFile.getMetadata() != null && gridFSFile.getMetadata().get("_contentType") != null) {
+                contentType = gridFSFile.getMetadata().get("_contentType").toString();
+            }
+
+            // Extract the display name (part after UUID_)
+            String displayName = fileName;
+            int underscoreIdx = fileName.indexOf('_');
+            if (underscoreIdx > 0 && underscoreIdx < fileName.length() - 1) {
+                displayName = fileName.substring(underscoreIdx + 1);
+            }
+
+            return ResponseEntity.ok()
+                    .contentType(MediaType.parseMediaType(contentType))
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + displayName + "\"")
+                    .body(new InputStreamResource(inputStream));
+        } catch (Exception ex) {
+            return ResponseEntity.internalServerError()
+                    .body("Error downloading file: " + ex.getMessage());
         }
     }
 }
