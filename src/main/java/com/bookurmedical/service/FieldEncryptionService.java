@@ -14,6 +14,8 @@ import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Base64;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Dual-mode field-level encryption service.
@@ -41,6 +43,7 @@ import java.util.Base64;
  */
 @Service
 public class FieldEncryptionService {
+    private static final Logger log = LoggerFactory.getLogger(FieldEncryptionService.class);
 
     private static final String RAND_PREFIX = "ENC::";
     private static final String DET_PREFIX = "ENCD::";
@@ -93,7 +96,9 @@ public class FieldEncryptionService {
             c.init(Cipher.DECRYPT_MODE, aesKey, new GCMParameterSpec(TAG_BITS, iv));
             return new String(c.doFinal(ct), StandardCharsets.UTF_8);
         } catch (Exception e) {
-            throw new RuntimeException("Decryption failed", e);
+            log.warn("[Encryption] Decryption failed for value starting with {}: {}", 
+                cipher.substring(0, Math.min(cipher.length(), 10)), e.getMessage());
+            return cipher;
         }
     }
 

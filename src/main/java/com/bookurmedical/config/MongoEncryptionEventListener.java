@@ -57,6 +57,7 @@ public class MongoEncryptionEventListener extends AbstractMongoEventListener<Obj
             return;
 
         Class<?> type = event.getType();
+        log.info("[Encryption] Triggered onAfterLoad for type: {}", type != null ? type.getName() : "null");
         processDocumentFields(type, document, false);
     }
 
