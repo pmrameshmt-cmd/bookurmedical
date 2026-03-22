@@ -41,6 +41,7 @@ public class AuthController {
     @PostMapping("/signin")
     public ResponseEntity<?> authenticateUser(@RequestBody LoginRequest loginRequest) {
         try {
+            System.out.println("loginRequest: " + loginRequest);
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
 
@@ -80,6 +81,7 @@ public class AuthController {
     @PostMapping("/admin/signin")
     public ResponseEntity<?> authenticateAdmin(@RequestBody LoginRequest loginRequest) {
         try {
+            System.out.println("admin loginRequest: " + loginRequest);
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
 
@@ -125,6 +127,7 @@ public class AuthController {
     @PostMapping("/signup")
     public ResponseEntity<?> registerUser(@RequestBody SignupRequest signupRequest) {
         try {
+            System.out.println("signupRequest: " + signupRequest);
             userService.registerUser(signupRequest);
             return ResponseEntity.ok("User registered successfully!");
         } catch (RuntimeException e) {
@@ -136,6 +139,7 @@ public class AuthController {
     public ResponseEntity<?> forgotPassword(@RequestBody java.util.Map<String, String> request) {
         String email = request.get("email");
         try {
+            System.out.println("forgotPassword email: " + email);
             userService.forgotPassword(email);
             return ResponseEntity.ok("Password reset email sent!");
         } catch (RuntimeException e) {
@@ -148,6 +152,7 @@ public class AuthController {
         String token = request.get("token");
         String newPassword = request.get("newPassword");
         try {
+            System.out.println("resetPassword token: " + token);
             userService.resetPassword(token, newPassword);
             return ResponseEntity.ok("Password reset successfully!");
         } catch (RuntimeException e) {
@@ -158,6 +163,7 @@ public class AuthController {
     @GetMapping("/verify-email")
     public ResponseEntity<?> verifyEmail(@RequestParam("token") String token) {
         try {
+            System.out.println("verifyEmail token: " + token);
             userService.verifyEmail(token);
             return ResponseEntity.ok("Email verified successfully! You can now log in.");
         } catch (RuntimeException e) {
