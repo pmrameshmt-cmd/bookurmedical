@@ -66,4 +66,15 @@ public class AdminUserController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
+
+    @PostMapping("/patients/assign")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<?> assignDoctor(@RequestBody java.util.Map<String, String> request) {
+        try {
+            adminService.assignDoctor(request.get("patientId"), request.get("doctorId"));
+            return ResponseEntity.ok(java.util.Map.of("message", "Doctor assigned successfully!"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
+        }
+    }
 }

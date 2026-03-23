@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -71,5 +72,19 @@ public class AdminService {
         });
 
         return profile;
+    }
+
+    public void assignDoctor(String patientId, String doctorId) {
+        // Find the completed medical case sheet for this user
+        medicalCaseSheetRepository.findByUserId(patientId).ifPresentOrElse(sheet -> {
+            sheet.setAssignedDoctorId(doctorId);
+            // Update status if it's currently completed/waiting assignment
+            if ("COMPLETED".equals(sheet.getStatus()) || "NEW".equals(sheet.getStatus())) {
+                sheet.setStatus("DOCTOR_ASSIGNED");
+            }
+            medicalCaseSheetRepository.save(sheet);
+        }, () -> {
+            throw new RuntimeException("Medical history not found for patient " + patientId);
+        });
     }
 }

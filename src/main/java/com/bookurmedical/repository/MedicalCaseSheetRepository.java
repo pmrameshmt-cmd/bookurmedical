@@ -7,4 +7,5 @@ import java.util.Optional;
 
 public interface MedicalCaseSheetRepository extends MongoRepository<MedicalCaseSheet, String> {
     Optional<MedicalCaseSheet> findByUserId(String userId);
+    java.util.List<MedicalCaseSheet> findByAssignedDoctorId(String doctorId);
 }

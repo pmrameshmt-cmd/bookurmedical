@@ -131,6 +131,9 @@ public class MedicalCaseSheet {
     @Encrypted
     private String reaction;
 
+    // ── Assignment & Coordination ───────────────────────────────────────────
+    private String assignedDoctorId; // Link to the doctor assigned by admin
+
     // ── Status ──────────────────────────────────────────────────────────────
     private String status; // DRAFT or COMPLETED
 
