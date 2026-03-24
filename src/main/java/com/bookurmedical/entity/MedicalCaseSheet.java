@@ -139,4 +139,6 @@ public class MedicalCaseSheet {
 
     @Encrypted
     private String progressNotes;
+
+    private java.util.List<java.util.Map<java.lang.String, java.lang.Object>> notes;
 }
