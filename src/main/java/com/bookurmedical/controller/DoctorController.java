@@ -71,7 +71,7 @@ public class DoctorController {
                 .orElseThrow(() -> new RuntimeException("Error: Case not found."));
 
         // Only allow assigned doctor or moderator
-        if (doctor.getAuthorities().stream().noneMatch(a -> a.getAuthority().equals("MODERATE_DOCTOR")) &&
+        if (!"MODERATE_DOCTOR".equals(doctor.getRole()) &&
                 !doctor.getId().equals(sheet.getAssignedDoctorId())) {
             return ResponseEntity.status(403).build();
         }
