@@ -18,9 +18,10 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 
     @Override
     @Transactional
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("User Not Found with username: " + username));
+    public UserDetails loadUserByUsername(String usernameOrId) throws UsernameNotFoundException {
+        User user = userRepository.findByUsername(usernameOrId)
+                .orElseGet(() -> userRepository.findById(usernameOrId)
+                        .orElseThrow(() -> new UsernameNotFoundException("User Not Found with username or ID: " + usernameOrId)));
 
         // ── Backward-compatibility migration ──────────────────────────────────
         // Users created BEFORE the email-verification system was added will have

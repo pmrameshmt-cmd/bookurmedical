@@ -30,6 +30,13 @@ public class AdminUserController {
         return ResponseEntity.ok(userService.getUsersByRoles(adminRoles));
     }
 
+    @GetMapping("/doctors")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<List<User>> getDoctors() {
+        List<String> doctorRoles = Arrays.asList("DOCTOR", "MODERATE_DOCTOR");
+        return ResponseEntity.ok(userService.getUsersByRoles(doctorRoles));
+    }
+
     @GetMapping("/patients")
     @PreAuthorize("hasAnyAuthority('ADMIN', 'SUPER_ADMIN')")
     public ResponseEntity<List<java.util.Map<String, Object>>> getPatients() {
@@ -64,6 +71,17 @@ public class AdminUserController {
             return ResponseEntity.ok("User deleted successfully!");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/patients/assign")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<?> assignDoctor(@RequestBody java.util.Map<String, String> request) {
+        try {
+            adminService.assignDoctor(request.get("patientId"), request.get("doctorId"));
+            return ResponseEntity.ok(java.util.Map.of("message", "Doctor assigned successfully!"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
         }
     }
 }

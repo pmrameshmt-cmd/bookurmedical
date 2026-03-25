@@ -20,7 +20,7 @@ public class EmailService {
     @Value("${app.frontend-url}")
     private String frontendBaseUrl;
 
-    @Async
+
     public void sendWelcomeEmail(String toEmail, String firstName) {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(fromEmail);
@@ -37,7 +37,6 @@ public class EmailService {
         mailSender.send(message);
     }
 
-    @Async
     public void sendVerificationEmail(String toEmail, String firstName, String token) {
         String verifyLink = frontendBaseUrl + "/verify-email?token=" + token;
 
@@ -58,7 +57,6 @@ public class EmailService {
         mailSender.send(message);
     }
 
-    @Async
     public void sendPasswordResetEmail(String toEmail, String token) {
         String resetLink = frontendBaseUrl + "/reset-password?token=" + token;
 
