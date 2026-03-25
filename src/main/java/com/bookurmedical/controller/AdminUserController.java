@@ -30,6 +30,13 @@ public class AdminUserController {
         return ResponseEntity.ok(userService.getUsersByRoles(adminRoles));
     }
 
+    @GetMapping("/doctors")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<List<User>> getDoctors() {
+        List<String> doctorRoles = Arrays.asList("DOCTOR", "MODERATE_DOCTOR");
+        return ResponseEntity.ok(userService.getUsersByRoles(doctorRoles));
+    }
+
     @GetMapping("/patients")
     @PreAuthorize("hasAnyAuthority('ADMIN', 'SUPER_ADMIN')")
     public ResponseEntity<List<java.util.Map<String, Object>>> getPatients() {

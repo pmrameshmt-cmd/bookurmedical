@@ -78,10 +78,8 @@ public class AdminService {
         // Find the completed medical case sheet for this user
         medicalCaseSheetRepository.findByUserId(patientId).ifPresentOrElse(sheet -> {
             sheet.setAssignedDoctorId(doctorId);
-            // Update status if it's currently completed/waiting assignment
-            if ("COMPLETED".equals(sheet.getStatus()) || "NEW".equals(sheet.getStatus())) {
-                sheet.setStatus("DOCTOR_ASSIGNED");
-            }
+            // Synchronize with Frontend Workflow Stages
+            sheet.setStatus("Case Sheet Submitted"); 
             medicalCaseSheetRepository.save(sheet);
         }, () -> {
             throw new RuntimeException("Medical history not found for patient " + patientId);

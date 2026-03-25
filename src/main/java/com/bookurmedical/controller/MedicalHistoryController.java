@@ -144,4 +144,17 @@ public class MedicalHistoryController {
                     .body("Error downloading file: " + ex.getMessage());
         }
     }
+
+    @GetMapping("/my-status")
+    public ResponseEntity<?> getMyStatus() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = ((UserDetails) authentication.getPrincipal()).getUsername();
+
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Error: User not found."));
+
+        return medicalCaseSheetRepository.findByUserId(user.getId())
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.noContent().build());
+    }
 }
