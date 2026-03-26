@@ -157,4 +157,19 @@ public class MedicalHistoryController {
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.noContent().build());
     }
+
+    @PostMapping("/request-reschedule")
+    public ResponseEntity<?> requestReschedule(@RequestBody java.util.Map<String, String> request) {
+        String caseId = request.get("caseId");
+        String reason = request.get("reason");
+
+        MedicalCaseSheet sheet = medicalCaseSheetRepository.findById(caseId)
+                .orElseThrow(() -> new RuntimeException("Error: Case not found."));
+
+        sheet.setStatus("Reschedule Requested");
+        // Optionally add the reason as a medical note or message, but for now just updating status
+        medicalCaseSheetRepository.save(sheet);
+
+        return ResponseEntity.ok("Reschedule request received.");
+    }
 }
