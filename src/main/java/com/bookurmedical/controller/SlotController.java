@@ -39,4 +39,10 @@ public class SlotController {
         slotRepository.save(slot);
         return ResponseEntity.ok("Slot selected successfully!");
     }
+
+    @DeleteMapping("/{slotId}")
+    public ResponseEntity<?> deleteSlot(@PathVariable String slotId) {
+        slotRepository.deleteById(slotId);
+        return ResponseEntity.ok("Slot deleted successfully!");
+    }
 }
