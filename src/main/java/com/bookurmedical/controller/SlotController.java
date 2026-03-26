@@ -31,6 +31,11 @@ public class SlotController {
         return ResponseEntity.ok(slotRepository.findByCaseId(caseId));
     }
 
+    @GetMapping("/patient/{patientId}")
+    public ResponseEntity<List<Slot>> getPatientSlots(@PathVariable String patientId) {
+        return ResponseEntity.ok(slotRepository.findByPatientId(patientId));
+    }
+
     @PostMapping("/share")
     public ResponseEntity<List<Slot>> shareSlots(@RequestBody List<Slot> slots) {
         return ResponseEntity.ok(slotRepository.saveAll(slots));
@@ -55,6 +60,16 @@ public class SlotController {
         }
  
         return ResponseEntity.ok("Slot selected successfully!");
+    }
+
+    @PutMapping("/{slotId}/status")
+    public ResponseEntity<?> updateSlotStatus(@PathVariable String slotId, @RequestBody java.util.Map<String, String> payload) {
+        Slot slot = slotRepository.findById(slotId)
+                .orElseThrow(() -> new RuntimeException("Error: Slot not found."));
+        if (payload.containsKey("status")) slot.setStatus(payload.get("status"));
+        if (payload.containsKey("patientId")) slot.setPatientId(payload.get("patientId"));
+        slotRepository.save(slot);
+        return ResponseEntity.ok("Slot updated successfully!");
     }
 
     @DeleteMapping("/{slotId}")

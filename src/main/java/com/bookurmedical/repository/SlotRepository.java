@@ -7,4 +7,5 @@ import java.util.List;
 public interface SlotRepository extends MongoRepository<Slot, String> {
     List<Slot> findByDoctorId(String doctorId);
     List<Slot> findByCaseId(String caseId);
+    List<Slot> findByPatientId(String patientId);
 }
