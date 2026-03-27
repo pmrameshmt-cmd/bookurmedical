@@ -26,7 +26,7 @@ public class AdminService {
     public List<Map<String, Object>> getPatients() {
         // Fetch all users with role 'USER'
         List<User> users = userRepository.findAll().stream()
-                .filter(u -> "USER".equals(u.getRole()))
+                .filter(u -> "USER".equalsIgnoreCase(u.getRole()) || "PATIENT".equalsIgnoreCase(u.getRole()))
                 .collect(Collectors.toList());
 
         List<Map<String, Object>> result = new ArrayList<>();
@@ -42,14 +42,28 @@ public class AdminService {
 
             // Try to find medical case sheet
             medicalCaseSheetRepository.findByUserId(user.getId()).ifPresentOrElse(sheet -> {
-                patientMap.put("status", sheet.getStatus() != null ? sheet.getStatus() : "Pending");
+                patientMap.put("caseId", sheet.getId());
+                patientMap.put("status", sheet.getStatus() != null ? sheet.getStatus() : "NEW");
                 patientMap.put("treatment",
-                        sheet.getPrimaryDiagnosis() != null ? sheet.getPrimaryDiagnosis() : "Not Specified");
-                patientMap.put("forms", sheet.getStatus().equals("COMPLETED") ? 1 : 0);
+                        sheet.getPrimaryDiagnosis() != null ? sheet.getPrimaryDiagnosis() : "General Consultation");
+                patientMap.put("forms", "COMPLETED".equalsIgnoreCase(sheet.getStatus()) ? 1 : 0);
+                patientMap.put("doctorId", sheet.getAssignedDoctorId());
+                
+                if (sheet.getAssignedDoctorId() != null) {
+                    userRepository.findById(sheet.getAssignedDoctorId()).ifPresent(d -> {
+                        String drName = "Dr. " + (d.getFirstName() != null ? d.getFirstName() : "") + " " + (d.getLastName() != null ? d.getLastName() : "");
+                        patientMap.put("assignedDoctor", drName.trim());
+                    });
+                } else {
+                    patientMap.put("assignedDoctor", null);
+                }
             }, () -> {
-                patientMap.put("status", "No Record");
-                patientMap.put("treatment", "N/A");
+                patientMap.put("caseId", null);
+                patientMap.put("status", "NEW");
+                patientMap.put("treatment", "Not Started");
                 patientMap.put("forms", 0);
+                patientMap.put("doctorId", null);
+                patientMap.put("assignedDoctor", null);
             });
 
             result.add(patientMap);
@@ -79,7 +93,7 @@ public class AdminService {
         medicalCaseSheetRepository.findByUserId(patientId).ifPresentOrElse(sheet -> {
             sheet.setAssignedDoctorId(doctorId);
             // Synchronize with Frontend Workflow Stages
-            sheet.setStatus("Case Sheet Submitted"); 
+            sheet.setStatus("Doctor Assigned"); 
             medicalCaseSheetRepository.save(sheet);
         }, () -> {
             throw new RuntimeException("Medical history not found for patient " + patientId);
