@@ -53,4 +53,8 @@ public class User {
     private String emailVerificationTokenHash; // HMAC — used for lookup
 
     private boolean emailVerified = false;
+    
+    private boolean isOnline = false;
+    
+    private java.time.LocalDateTime lastSeen;
 }

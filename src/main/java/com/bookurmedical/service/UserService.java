@@ -139,8 +139,16 @@ public class UserService {
 
     public java.util.List<User> getUsersByRoles(java.util.List<String> roles) {
         return userRepository.findAll().stream()
-                .filter(u -> roles.contains(u.getRole()))
+                .filter(u -> roles.contains(u.getRole().toUpperCase()))
                 .collect(java.util.stream.Collectors.toList());
+    }
+
+    public void setOnlineStatus(String username, boolean isOnline) {
+        userRepository.findByUsername(username).ifPresent(user -> {
+            user.setOnline(isOnline);
+            user.setLastSeen(java.time.LocalDateTime.now());
+            userRepository.save(user);
+        });
     }
 
     public void deleteUser(String id) {

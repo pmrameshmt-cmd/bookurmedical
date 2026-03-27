@@ -54,6 +54,8 @@ public class AuthController {
                     .findFirst()
                     .orElse("USER");
 
+            userService.setOnlineStatus(userDetails.getUsername(), true);
+
             return ResponseEntity.ok(new JwtResponse(jwt,
                     userDetails.getId(),
                     userDetails.getUsername(),
@@ -101,6 +103,8 @@ public class AuthController {
 
             SecurityContextHolder.getContext().setAuthentication(authentication);
             String jwt = jwtUtils.generateJwtToken(authentication);
+
+            userService.setOnlineStatus(userDetails.getUsername(), true);
 
             return ResponseEntity.ok(new JwtResponse(jwt,
                     userDetails.getId(),
